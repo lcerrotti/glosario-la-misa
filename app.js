@@ -35,6 +35,17 @@ function pickColumn(headers, patterns, fallback) {
   return index >= 0 ? index : fallback;
 }
 
+function youtubeId(url) {
+  const text = String(url || "").trim();
+  if (!text) return "";
+  const match = text.match(
+    /(?:youtube\.com\/(?:shorts\/|watch\?v=|embed\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  if (match) return match[1];
+  if (/^[a-zA-Z0-9_-]{11}$/.test(text)) return text;
+  return "";
+}
+
 function uniqueTerms(rows) {
   const seen = new Set();
   const terms = [];
@@ -47,7 +58,11 @@ function uniqueTerms(rows) {
     const key = normalize(term);
     if (!term || !definition || seen.has(key)) return;
     seen.add(key);
-    terms.push({ term, definition });
+    terms.push({
+      term,
+      definition,
+      video: youtubeId(row.video),
+    });
   });
   return terms;
 }
@@ -63,10 +78,12 @@ function termsFromGviz(table) {
   }
   const termCol = pickColumn(headers, [/palabra/, /termino/, /term/], 0);
   const defCol = pickColumn(headers, [/defin/], 1);
+  const videoCol = pickColumn(headers, [/^video$/], 2);
   return uniqueTerms(
     data.map((row) => ({
       term: row[termCol] || "",
       definition: row[defCol] || "",
+      video: row[videoCol] || "",
     }))
   );
 }
@@ -88,7 +105,8 @@ function termsFromObjects(rows) {
         row.definicion ||
         row.definition ||
         (entries[1] ? entries[1][1] : "");
-      return { term, definition };
+      const video = row.video || row.Video || row.VIDEO || "";
+      return { term, definition, video };
     })
   );
 }
@@ -206,8 +224,11 @@ function render() {
       const entries = group
         .map((item) => {
           delay += 1;
+          const video = item.video
+            ? ` data-video="${escapeHtml(item.video)}" class="entry has-video"`
+            : ` class="entry"`;
           return `
-            <article class="entry" style="--d:${delay}">
+            <article${video} style="--d:${delay}">
               <h2>${escapeHtml(item.term)}</h2>
               <p>${escapeHtml(item.definition)}</p>
             </article>
@@ -233,6 +254,52 @@ lettersEl.addEventListener("click", (event) => {
 });
 
 q.addEventListener("input", render);
+
+let activeClip = null;
+
+function stopClip() {
+  if (!activeClip) return;
+  activeClip.classList.remove("is-playing");
+  const box = activeClip.querySelector(".clip");
+  if (box) box.innerHTML = "";
+  activeClip = null;
+}
+
+function playClip(entry) {
+  const id = entry.dataset.video;
+  if (!id || activeClip === entry) return;
+  stopClip();
+  let box = entry.querySelector(".clip");
+  if (!box) {
+    box = document.createElement("div");
+    box.className = "clip";
+    entry.appendChild(box);
+  }
+  const src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${id}`;
+  box.innerHTML = `<iframe src="${src}" allow="autoplay; encrypted-media" title="Video"></iframe>`;
+  entry.classList.add("is-playing");
+  activeClip = entry;
+}
+
+glossaryEl.addEventListener("mouseover", (event) => {
+  const entry = event.target.closest(".entry.has-video");
+  if (!entry || entry.contains(event.relatedTarget)) return;
+  playClip(entry);
+});
+
+glossaryEl.addEventListener("mouseout", (event) => {
+  const entry = event.target.closest(".entry.has-video");
+  if (!entry || entry.contains(event.relatedTarget)) return;
+  stopClip();
+});
+
+glossaryEl.addEventListener("click", (event) => {
+  if (!window.matchMedia("(hover: none)").matches) return;
+  const entry = event.target.closest(".entry.has-video");
+  if (!entry) return;
+  if (activeClip === entry) stopClip();
+  else playClip(entry);
+});
 
 const hint = document.querySelector("#hint");
 let hintShown = false;

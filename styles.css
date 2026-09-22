@@ -433,11 +433,26 @@ h1 {
 }
 
 .entry {
+  position: relative;
   padding: 18px 6px 20px;
   border-bottom: 1px solid rgba(255, 208, 0, 0.12);
   animation: entry-in 0.45s ease both;
   animation-delay: calc(var(--d) * 40ms);
   transition: transform 0.25s ease, background 0.25s ease, padding 0.25s ease;
+}
+
+.entry.has-video {
+  padding-right: 128px;
+}
+
+.entry.has-video h2::after {
+  content: "▶";
+  display: inline-block;
+  margin-left: 10px;
+  color: var(--yellow);
+  font-size: 0.7em;
+  letter-spacing: 0;
+  vertical-align: 2px;
 }
 
 .entry:hover {
@@ -466,10 +481,40 @@ h1 {
   color: var(--yellow);
 }
 
-.entry p:last-child {
+.entry > p {
   margin: 0;
   line-height: 1.65;
   color: #efe6c4;
+}
+
+.clip {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  width: 116px;
+  height: 206px;
+  overflow: hidden;
+  background: #050505;
+  border: 2px solid var(--yellow);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.92) translateY(8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 4;
+}
+
+.entry.is-playing .clip {
+  opacity: 1;
+  transform: none;
+}
+
+.clip iframe {
+  position: absolute;
+  width: 180%;
+  height: 118%;
+  left: -40%;
+  top: -8%;
+  border: 0;
 }
 
 .empty {
