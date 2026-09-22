@@ -457,7 +457,6 @@ h1 {
 }
 
 .entry:hover {
-  transform: translateX(8px);
   background: linear-gradient(90deg, rgba(255, 208, 0, 0.1), transparent 70%);
   padding-left: 12px;
 }
@@ -502,7 +501,8 @@ h1 {
   z-index: 40;
 }
 
-.entry.is-playing .clip {
+.entry.is-playing .clip,
+.clip-layer:not([hidden]) {
   opacity: 1;
   pointer-events: auto;
   transform: none;

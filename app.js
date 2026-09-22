@@ -256,6 +256,7 @@ lettersEl.addEventListener("click", (event) => {
 q.addEventListener("input", render);
 
 let activeClip = null;
+let clipLayer = null;
 let hideTimer = 0;
 let wantedVolume = 80;
 let audioOn = false;
@@ -264,8 +265,19 @@ function isDesktop() {
   return window.matchMedia("(min-width: 721px)").matches;
 }
 
-function isMouseLike(event) {
-  return event.pointerType === "mouse";
+function getClipLayer() {
+  if (!clipLayer) {
+    clipLayer = document.createElement("div");
+    clipLayer.className = "clip clip-layer";
+    clipLayer.hidden = true;
+    document.body.appendChild(clipLayer);
+    clipLayer.addEventListener("mouseenter", () => clearTimeout(hideTimer));
+    clipLayer.addEventListener("mouseleave", () => {
+      clearTimeout(hideTimer);
+      hideTimer = window.setTimeout(stopClip, 200);
+    });
+  }
+  return clipLayer;
 }
 
 function clipSrc(id) {
@@ -282,22 +294,14 @@ function sendYt(iframe, func, args = []) {
 }
 
 function placeClip(entry, box) {
-  if (!isDesktop()) {
-    box.style.left = "";
-    box.style.top = "";
-    box.style.width = "";
-    box.style.height = "";
-    return;
-  }
   const rect = entry.getBoundingClientRect();
   const width = 210;
   const height = 374;
-  let left = rect.right + 16;
-  let top = rect.top;
-  if (left + width > window.innerWidth - 16) {
-    left = Math.max(16, rect.left);
-    top = rect.bottom + 8;
+  let left = rect.right + 18;
+  if (left + width > window.innerWidth - 12) {
+    left = window.innerWidth - width - 12;
   }
+  let top = rect.top;
   if (top + height > window.innerHeight - 12) {
     top = Math.max(12, window.innerHeight - height - 12);
   }
@@ -309,14 +313,13 @@ function placeClip(entry, box) {
 
 function stopClip() {
   clearTimeout(hideTimer);
-  if (!activeClip) return;
-  activeClip.classList.remove("is-playing");
-  const box = activeClip.querySelector(".clip");
-  if (box) {
-    box.innerHTML = "";
-    box.style.left = "";
-    box.style.top = "";
+  if (activeClip) activeClip.classList.remove("is-playing");
+  if (clipLayer) {
+    clipLayer.hidden = true;
+    clipLayer.innerHTML = "";
   }
+  const local = activeClip?.querySelector(".clip");
+  if (local) local.remove();
   activeClip = null;
   audioOn = false;
 }
@@ -361,12 +364,15 @@ function playClip(entry) {
   const id = entry.dataset.video;
   if (!id || activeClip === entry) return;
   stopClip();
-  let box = entry.querySelector(".clip");
-  if (!box) {
-    box = document.createElement("div");
+
+  const desktop = isDesktop();
+  const box = desktop ? getClipLayer() : document.createElement("div");
+  if (!desktop) {
     box.className = "clip";
     entry.appendChild(box);
   }
+
+  box.hidden = false;
   box.innerHTML = `
     <div class="clip-frame">
       <iframe src="${clipSrc(id)}" allow="autoplay; encrypted-media; fullscreen" title="Video"></iframe>
@@ -379,28 +385,29 @@ function playClip(entry) {
   bindClipControls(box);
   entry.classList.add("is-playing");
   activeClip = entry;
-  placeClip(entry, box);
+  if (desktop) placeClip(entry, box);
 }
 
-glossaryEl.addEventListener("pointerover", (event) => {
-  if (!isMouseLike(event)) return;
+glossaryEl.addEventListener("mouseenter", (event) => {
+  if (!isDesktop()) return;
   const entry = event.target.closest(".entry.has-video");
-  if (!entry || entry.contains(event.relatedTarget)) return;
+  if (!entry) return;
   clearTimeout(hideTimer);
   playClip(entry);
-});
+}, true);
 
-glossaryEl.addEventListener("pointerout", (event) => {
-  if (!isMouseLike(event)) return;
+glossaryEl.addEventListener("mouseleave", (event) => {
+  if (!isDesktop()) return;
   const entry = event.target.closest(".entry.has-video");
-  if (!entry || entry.contains(event.relatedTarget)) return;
+  if (!entry) return;
+  if (clipLayer && event.relatedTarget && clipLayer.contains(event.relatedTarget)) return;
   clearTimeout(hideTimer);
-  hideTimer = window.setTimeout(stopClip, 400);
-});
+  hideTimer = window.setTimeout(stopClip, 250);
+}, true);
 
 glossaryEl.addEventListener("click", (event) => {
   if (event.target.closest(".clip")) return;
-  if (isDesktop() && window.matchMedia("(pointer: fine)").matches) return;
+  if (isDesktop()) return;
   const entry = event.target.closest(".entry.has-video");
   if (!entry) return;
   if (activeClip === entry) stopClip();
