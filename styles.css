@@ -15,6 +15,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -714,7 +715,15 @@ h1 {
     width: 193px;
   }
 
+  .entry.has-video {
+    padding-right: 128px;
+  }
+
   .clip {
+    position: absolute;
+    top: 10px;
+    right: 0;
+    left: auto;
     width: 116px;
     height: 206px;
   }

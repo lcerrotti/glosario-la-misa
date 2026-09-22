@@ -256,38 +256,47 @@ lettersEl.addEventListener("click", (event) => {
 q.addEventListener("input", render);
 
 let activeClip = null;
-let ytPlayer = null;
 let hideTimer = 0;
 let wantedVolume = 80;
+let audioOn = false;
 
-function ensureYouTube(callback) {
-  if (window.YT && window.YT.Player) {
-    callback();
-    return;
-  }
-  const previous = window.onYouTubeIframeAPIReady;
-  window.onYouTubeIframeAPIReady = () => {
-    if (typeof previous === "function") previous();
-    callback();
-  };
-  if (!document.getElementById("yt-api")) {
-    const script = document.createElement("script");
-    script.id = "yt-api";
-    script.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(script);
-  }
+function isDesktop() {
+  return window.matchMedia("(min-width: 721px)").matches;
+}
+
+function isMouseLike(event) {
+  return event.pointerType === "mouse";
+}
+
+function clipSrc(id) {
+  const origin = encodeURIComponent(window.location.origin);
+  return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${id}&enablejsapi=1&origin=${origin}`;
+}
+
+function sendYt(iframe, func, args = []) {
+  if (!iframe?.contentWindow) return;
+  iframe.contentWindow.postMessage(
+    JSON.stringify({ event: "command", func, args }),
+    "*"
+  );
 }
 
 function placeClip(entry, box) {
+  if (!isDesktop()) {
+    box.style.left = "";
+    box.style.top = "";
+    box.style.width = "";
+    box.style.height = "";
+    return;
+  }
   const rect = entry.getBoundingClientRect();
-  const mobile = window.matchMedia("(max-width: 720px)").matches;
-  const width = mobile ? 116 : 210;
-  const height = mobile ? 206 : 374;
+  const width = 210;
+  const height = 374;
   let left = rect.right + 16;
   let top = rect.top;
   if (left + width > window.innerWidth - 16) {
-    left = Math.max(16, window.innerWidth - width - 16);
-    top = rect.bottom + 10;
+    left = Math.max(16, rect.left);
+    top = rect.bottom + 8;
   }
   if (top + height > window.innerHeight - 12) {
     top = Math.max(12, window.innerHeight - height - 12);
@@ -300,51 +309,52 @@ function placeClip(entry, box) {
 
 function stopClip() {
   clearTimeout(hideTimer);
-  if (ytPlayer && ytPlayer.destroy) {
-    try {
-      ytPlayer.destroy();
-    } catch (error) {
-      /* ignore */
-    }
-    ytPlayer = null;
-  }
   if (!activeClip) return;
   activeClip.classList.remove("is-playing");
   const box = activeClip.querySelector(".clip");
-  if (box) box.innerHTML = "";
+  if (box) {
+    box.innerHTML = "";
+    box.style.left = "";
+    box.style.top = "";
+  }
   activeClip = null;
+  audioOn = false;
 }
 
 function bindClipControls(box) {
+  const iframe = box.querySelector("iframe");
   const sound = box.querySelector(".clip-sound");
   const volume = box.querySelector(".clip-vol");
+
   sound.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (!ytPlayer) return;
-    if (ytPlayer.isMuted()) {
-      ytPlayer.unMute();
-      ytPlayer.setVolume(wantedVolume);
+    audioOn = !audioOn;
+    if (audioOn) {
+      sendYt(iframe, "unMute");
+      sendYt(iframe, "setVolume", [wantedVolume]);
       sound.textContent = "Silenciar";
       sound.classList.add("is-on");
     } else {
-      ytPlayer.mute();
+      sendYt(iframe, "mute");
       sound.textContent = "Activar audio";
       sound.classList.remove("is-on");
     }
   });
+
   volume.addEventListener("input", (event) => {
     event.stopPropagation();
     wantedVolume = Number(volume.value);
-    if (!ytPlayer) return;
-    ytPlayer.setVolume(wantedVolume);
-    if (wantedVolume > 0 && ytPlayer.isMuted()) {
-      ytPlayer.unMute();
+    sendYt(iframe, "setVolume", [wantedVolume]);
+    if (wantedVolume > 0 && !audioOn) {
+      audioOn = true;
+      sendYt(iframe, "unMute");
       sound.textContent = "Silenciar";
       sound.classList.add("is-on");
     }
   });
-  box.addEventListener("mouseenter", () => clearTimeout(hideTimer));
+
+  box.addEventListener("pointerdown", (event) => event.stopPropagation());
 }
 
 function playClip(entry) {
@@ -358,7 +368,9 @@ function playClip(entry) {
     entry.appendChild(box);
   }
   box.innerHTML = `
-    <div class="clip-frame"><div class="clip-yt"></div></div>
+    <div class="clip-frame">
+      <iframe src="${clipSrc(id)}" allow="autoplay; encrypted-media; fullscreen" title="Video"></iframe>
+    </div>
     <div class="clip-ui">
       <button type="button" class="clip-sound">Activar audio</button>
       <input class="clip-vol" type="range" min="0" max="100" value="${wantedVolume}" aria-label="Volumen" />
@@ -368,52 +380,27 @@ function playClip(entry) {
   entry.classList.add("is-playing");
   activeClip = entry;
   placeClip(entry, box);
-
-  ensureYouTube(() => {
-    if (activeClip !== entry) return;
-    ytPlayer = new YT.Player(box.querySelector(".clip-yt"), {
-      videoId: id,
-      width: "100%",
-      height: "100%",
-      playerVars: {
-        autoplay: 1,
-        mute: 1,
-        controls: 0,
-        rel: 0,
-        modestbranding: 1,
-        playsinline: 1,
-        loop: 1,
-        playlist: id,
-        origin: window.location.origin,
-      },
-      events: {
-        onReady(event) {
-          event.target.mute();
-          event.target.setVolume(wantedVolume);
-          event.target.playVideo();
-        },
-      },
-    });
-  });
 }
 
-glossaryEl.addEventListener("mouseover", (event) => {
+glossaryEl.addEventListener("pointerover", (event) => {
+  if (!isMouseLike(event)) return;
   const entry = event.target.closest(".entry.has-video");
   if (!entry || entry.contains(event.relatedTarget)) return;
   clearTimeout(hideTimer);
   playClip(entry);
 });
 
-glossaryEl.addEventListener("mouseout", (event) => {
+glossaryEl.addEventListener("pointerout", (event) => {
+  if (!isMouseLike(event)) return;
   const entry = event.target.closest(".entry.has-video");
   if (!entry || entry.contains(event.relatedTarget)) return;
   clearTimeout(hideTimer);
-  hideTimer = window.setTimeout(stopClip, 350);
+  hideTimer = window.setTimeout(stopClip, 400);
 });
 
 glossaryEl.addEventListener("click", (event) => {
-  if (event.target.closest(".clip-ui")) return;
-  if (!window.matchMedia("(hover: none)").matches) return;
+  if (event.target.closest(".clip")) return;
+  if (isDesktop() && window.matchMedia("(pointer: fine)").matches) return;
   const entry = event.target.closest(".entry.has-video");
   if (!entry) return;
   if (activeClip === entry) stopClip();
@@ -423,7 +410,7 @@ glossaryEl.addEventListener("click", (event) => {
 window.addEventListener(
   "scroll",
   () => {
-    if (!activeClip) return;
+    if (!activeClip || !isDesktop()) return;
     const box = activeClip.querySelector(".clip");
     if (box) placeClip(activeClip, box);
   },
