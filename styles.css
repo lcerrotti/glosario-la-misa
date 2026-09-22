@@ -442,7 +442,7 @@ h1 {
 }
 
 .entry.has-video {
-  padding-right: 128px;
+  padding-right: 0;
 }
 
 .entry.has-video h2::after {
@@ -488,24 +488,29 @@ h1 {
 }
 
 .clip {
-  position: absolute;
-  top: 10px;
-  right: 0;
-  width: 116px;
-  height: 206px;
+  position: fixed;
+  width: 210px;
+  height: 374px;
   overflow: hidden;
   background: #050505;
   border: 2px solid var(--yellow);
   opacity: 0;
   pointer-events: none;
-  transform: scale(0.92) translateY(8px);
+  transform: scale(0.94) translateY(8px);
   transition: opacity 0.25s ease, transform 0.25s ease;
-  z-index: 4;
+  z-index: 40;
 }
 
 .entry.is-playing .clip {
   opacity: 1;
+  pointer-events: auto;
   transform: none;
+}
+
+.clip-frame {
+  position: absolute;
+  inset: 0 0 42px;
+  overflow: hidden;
 }
 
 .clip iframe {
@@ -515,6 +520,43 @@ h1 {
   left: -40%;
   top: -8%;
   border: 0;
+}
+
+.clip-ui {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: #111;
+}
+
+.clip-sound {
+  appearance: none;
+  border: 0;
+  background: var(--yellow);
+  color: #111;
+  font: 700 0.68rem "Libre Franklin", sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 7px 8px;
+  cursor: pointer;
+}
+
+.clip-sound.is-on {
+  background: #111;
+  color: var(--yellow);
+  box-shadow: inset 0 0 0 1px var(--yellow);
+}
+
+.clip-vol {
+  width: 100%;
+  accent-color: var(--yellow);
+  cursor: pointer;
 }
 
 .empty {
@@ -670,6 +712,20 @@ h1 {
     top: auto;
     bottom: 88px;
     width: 193px;
+  }
+
+  .clip {
+    width: 116px;
+    height: 206px;
+  }
+
+  .clip-frame {
+    inset: 0 0 38px;
+  }
+
+  .clip-sound {
+    font-size: 0.58rem;
+    padding: 5px 6px;
   }
 }
 
