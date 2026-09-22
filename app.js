@@ -234,6 +234,24 @@ lettersEl.addEventListener("click", (event) => {
 
 q.addEventListener("input", render);
 
+const hint = document.querySelector("#hint");
+let hintShown = false;
+
+if (params.get("hint")) {
+  hint.classList.add("is-on");
+  hintShown = true;
+}
+
+window.addEventListener(
+  "scroll",
+  () => {
+    if (hintShown || window.scrollY < 20) return;
+    hint.classList.add("is-on");
+    hintShown = true;
+  },
+  { passive: true }
+);
+
 loadTerms()
   .then((data) => {
     TERMS = data;

@@ -509,6 +509,81 @@ h1 {
   box-shadow: 4px 4px 0 #111, 0 0 24px rgba(0, 0, 0, 0.2);
 }
 
+.hint {
+  position: fixed;
+  right: 22px;
+  top: 42%;
+  z-index: 6;
+  width: 210px;
+  padding: 16px 16px 14px;
+  background: var(--yellow);
+  color: #111;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(40px, 8px, 0) rotate(2deg);
+  filter: blur(6px);
+  transition:
+    opacity 0.45s ease,
+    transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 0.45s ease,
+    width 0.25s ease,
+    padding 0.25s ease;
+}
+
+.hint.is-on {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) rotate(-1.5deg);
+  filter: blur(0);
+}
+
+.hint::after {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 22px;
+  border: 10px solid transparent;
+  border-right-color: var(--yellow);
+}
+
+.hint p {
+  margin: 0;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1.45rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.hint-btn {
+  display: block;
+  margin-top: 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  color: var(--yellow);
+  background: #111;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0 10px;
+  transition: max-height 0.28s ease, opacity 0.28s ease, margin 0.28s ease, padding 0.28s ease;
+}
+
+.hint:hover,
+.hint:focus-within {
+  transform: translate3d(-4px, 0, 0) rotate(0deg);
+}
+
+.hint:hover .hint-btn,
+.hint:focus-within .hint-btn {
+  max-height: 80px;
+  opacity: 1;
+  margin-top: 12px;
+  padding: 10px;
+}
+
 @media (max-width: 720px) {
   .motto {
     display: none;
@@ -543,6 +618,13 @@ h1 {
   .foot {
     flex-direction: column;
     text-align: left;
+  }
+
+  .hint {
+    right: 12px;
+    top: auto;
+    bottom: 88px;
+    width: 168px;
   }
 }
 
