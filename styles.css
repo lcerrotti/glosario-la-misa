@@ -511,11 +511,11 @@ h1 {
 
 .hint {
   position: fixed;
-  right: 22px;
+  right: 52px;
   top: 42%;
   z-index: 6;
-  width: 210px;
-  padding: 16px 16px 14px;
+  width: 242px;
+  padding: 18px 18px 16px;
   background: var(--yellow);
   color: #111;
   opacity: 0;
@@ -549,7 +549,7 @@ h1 {
 .hint p {
   margin: 0;
   font-family: "Bebas Neue", sans-serif;
-  font-size: 1.45rem;
+  font-size: 1.67rem;
   letter-spacing: 0.04em;
   line-height: 1;
 }
@@ -621,10 +621,10 @@ h1 {
   }
 
   .hint {
-    right: 12px;
+    right: 28px;
     top: auto;
     bottom: 88px;
-    width: 168px;
+    width: 193px;
   }
 }
 
